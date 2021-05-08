@@ -11,9 +11,13 @@ const userSchema = new Schema({
   name: String,
   password: { type: String, required: true },
   phone: { type: Number },
-  center_id: { type: Schema.Types.ObjectId, ref: "queue" },
-  queue_id: { type: Schema.Types.ObjectId, ref: "queue" },
+  center: { type: Schema.Types.ObjectId },
+  slot: { type: Date }, // length 1hr
+  queue_no: { type: Number, default: -1 },
+  entry_time: { type: Date },
+  esitimated_time: { type: Date },
   notify_id: String,
+  location: String,
 });
 
 const User = mongoose.model("user", userSchema);
