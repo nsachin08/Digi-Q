@@ -1,21 +1,42 @@
 import "./App.css";
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import { ProfilePicture } from "./components/ProfilePicture";
-import { Details } from "./components/Details";
+// import { Details } from "./components/Details";
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
-
-import PrivateRoute from "./components/PrivateRote";
+import PrivateRoute from "./components/PrivateRoute";
 import QueueNumber from "./components/Dashboard/QueueNumber";
 import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import AdminPage from "./pages/Admin";
+import CustomAlert from "./components/CustomAlert";
+import { useDispatch, useSelector } from "react-redux";
+import socketIOClient from "socket.io-client";
 import QueueCreate from "./pages/CreateQueue";
 import LoginReduced from "./pages/ReducedLogin";
 import Profile from "./pages/Profile";
+import Barcode from "./pages/Barcode";
+const ENDPOINT = "http://localhost:5000/";
 
 function App() {
+  let isLogin = useSelector((state) => state.userReducer.isLogin);
+  let user = useSelector((state) => state.userReducer.user);
+  const socket = socketIOClient(ENDPOINT);
+
+  const dispatch = useDispatch();
+  useEffect(() => {
+    // if (isLogin)
+    //   setInterval(async () => {
+    //     await socket.emit("getdata", {
+    //       id: user._id,
+    //     });
+    //   }, [5000]);
+    socket.on("userdata", (data) => {
+      console.log(data);
+      dispatch({ type: "UPDATE_USER", payload: data });
+    });
+  }, [isLogin, dispatch, socket, user._id]);
   let data = {
     name: "Vinamra Khoria",
     email: "vinamrakhoria@gmail.com",
@@ -31,13 +52,15 @@ function App() {
     <Router>
       <Switch>
         <Route path="/" exact component={Landing} />
-        <Route path="/app" exact component={Dashboard} />
         <Route path="/login" exact component={Login} />
+        <Route path="/scan" exact component={Barcode} />
+        <PrivateRoute path="/app" component={Profile} />
         <Route path="/register" exact component={Register} />
+        <Route path="/dashboard" exact component={Dashboard} />
         <Route path="/admin" exact component={AdminPage} />
-        <Route path ="/create" exact component={QueueCreate} />
-        <Route path ="/quicklogin" exact component={LoginReduced} />
-        <Route path ="/profile" exact component={Profile} />
+        <Route path="/create" exact component={QueueCreate} />
+        <Route path="/quicklogin/:qid" component={LoginReduced} />
+        <Route path="/profile" exact component={Profile} />
         {/*  <Route
           path="/about"
           render={(props) => (
@@ -72,6 +95,7 @@ function App() {
         />
         <Route exactpath="/u/:stats/" render={(props) => <QueueNumber />} />
       </Switch>
+      <CustomAlert />
     </Router>
     // <ProfilePicture data = {data}/>
   );
