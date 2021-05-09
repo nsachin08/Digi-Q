@@ -13,7 +13,7 @@ const QueueNumber = (props) => {
       </div>
       <img
         className=" queuenumberman"
-        src="/imgs/avatars-wearing-fabric-masks-protection_52683-41294%201.svg"
+        src="/imgs/man.png"
         alt="loading..."
       ></img>
     </div>

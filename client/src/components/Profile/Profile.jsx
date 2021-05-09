@@ -1,40 +1,43 @@
 import React from "react";
 import "./Profile.css";
-import Navbar from "../Dashboard/Navbar";
-import Footer from "../Dashboard/Footer";
-import { useSelector } from "react-redux";
-import { useHistory } from "react-router";
+import Button from "../CustomButton";
 const Profile = () => {
-  let user=useSelector(state=>state.userReducer.user);
-  const history=useHistory()
   return (
-      
-    <div className="signuppagecontainer container">
-        <Navbar />
-        <div style={{marginTop:"30px"}} ></div>
-       
-      <div className="mt-5 row justify-content-center d-flex">
+    <div class="customqueuecontainer">
+      <div className="row d-flex ml-3 mt-3 ">
         <img
-          className="profilebigimg"
-          src="/imgs/profilebig.png"
+          src="/imgs/back.png"
           alt="loading..."
+          //   onClick={() => history.push("/")}
         ></img>
       </div>
-      <div className="mt-5 row justify-content-center d-flex">
-        <p className="fontstyle1">{user.name}</p>
+      <div className="row d-flex ml-4 mt-3 ">
+        <h5>
+          Create your own Queue <br></br> INSTANTLY !
+        </h5>
       </div>
-      <div className="mb-5  row justify-content-center d-flex">
-        <p style={{color:"#AFAFAF"}}className="fontstyle1">{user.phone}</p>
+      <div className="mt-3 ml-4 mr-4 signupform">
+        <input type="text" className="form-input" placeholder="Name" />
+        <input
+          type="text"
+          className="form-input"
+          placeholder="Maximum number of people"
+        />
+        <input
+          type="text"
+          className="form-input"
+          placeholder="Average time per person"
+        />
+        {/* <input type="text" className="form-input" placeholder="Password" /> */}
+        {/* <input type="checkbox" className="ml-auto form-input" placeholder="Password" /> */}
+        <Button
+          style={{ margin: "auto", width: "100%", padding: "10px" }}
+          className="mt-5 primary-button"
+          size="md"
+        >
+          Create
+        </Button>
       </div>
-      <button  style={{ margin:"auto",width: "40%", padding: "10px" }}
-      className=" primary-button"
-      size="sm" onClick={()=>history.push("/create")}  >Create  Queue</button>
-      <button  onClick={()=>history.push("/admin")}   style={{ float:"right",margin:"auto",width: "40%", padding: "10px" }}
-      className="primary-button"
-      size="sm" >View Queue</button>
-      <div className="mt-1 row justify-content-center d-flex"></div>
-     
-      <Footer />
     </div>
   );
 };
