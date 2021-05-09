@@ -1,79 +1,9 @@
-const { Queue } = require("../models/Queue");
+const router = require("express").Router();
+const config = require("../config");
 const { User } = require("../models/User");
+const { Queue } = require("../models/Queue");
 const verify = require("../verify");
-
-const verify = async (req) => {
-  const token = req.header("auth-token");
-  if (!token) res.status(401).json({ mssg: "no token found", status: 1 });
-  try {
-    const verify = await jwt.verify(token, config.jwt_secret);
-    return verify;
-  } catch (err) {
-    console.log(err);
-    return null;
-  }
-};
-
-//TODO:SANKAR
-const addToQ = async (token, center_name, time) => {
-  const userid = await verify(token);
-  if (!userid) return null;
-  const user = await User.findByIdAndUpdate(
-    userid,
-    { $set: { center_id: addedQ._id } },
-    { new: true }
-  );
-  return { addedQ: addedQ, user: user };
-};
-
-const addToQ = async (token, center_id) => {
-  const userid = await verify(token);
-  if (!userid) return null;
-  const user = await User.findOne({ _id: userid });
-  const center = await Queue.findByIdAndUpdate(center_id, {
-    $push: { line: { user: userid } },
-  });
-  const updatedUser = await User.findByIdAndUpdate(
-    user._id,
-    {
-      $set: {
-        queue_no: center.queue.length + 1,
-        entry_time: time,
-        center: center_name,
-      },
-    },
-    { new: true }
-  );
-  return { user: updatedUser, center: center };
-};
-
-const removeFromQ = async (user_id, queue_id, token) => {
-  const ownerid = await verify(token);
-  if (!ownerid) return null;
-  let owner = await User.findOne({ _id: ownerid, center_id: queue_id });
-  if (!owner) return null;
-  const center = await Queue.findByIdAndUpdate(
-    owner.center_id,
-    { $pull: { "line.user": user_id } },
-    { new: true }
-  );
-  const user = await User.findByIdAndRemove(user_id, {
-    $set: { queue_id: null },
-  });
-  owner = await User.findOne({ _id: ownerid, center_id: queue_id });
-  return { user: owner };
-};
-
-//TODO:CALCULATE SRIESH
-const calculateEstimatedTime = async (center_name) => {
-  const users = await User.find({ center: center_name });
-  const center = await Center.find({ name: center_name });
-};
-
-const updateQ = async (center_name) => {
-  const users = await User.find({ center: center_name });
-  const center = await Center.find({ name: center_name });
-};
+const axios = require("axios");
 
 const notify = async (notify_id, title, mssg) => {
   const config = {
@@ -94,7 +24,7 @@ const notify = async (notify_id, title, mssg) => {
           title: title,
           image: url,
           icon:
-            "https://res.cloudinary.com/sankarkvs/image/upload/v1613555633/manager_prv1ox.png",
+            "https://res.cloudinary.com/sankarkvs/image/upload/v1619902128/vacciq_logo_1_1_exhsif.svg",
           content_available: true,
           priority: "high",
         },
@@ -104,62 +34,99 @@ const notify = async (notify_id, title, mssg) => {
           title: title,
           image: url,
           icon:
-            "https://res.cloudinary.com/sankarkvs/image/upload/v1613555633/manager_prv1ox.png",
+            "https://res.cloudinary.com/sankarkvs/image/upload/v1619902128/vacciq_logo_1_1_exhsif.svg",
           content_available: true,
           priority: "high",
         },
       },
       config
     )
-    .then((res) => {
-      document.location.reload();
-    })
-    .catch((err) => {
-      alert("Something went wrong");
-    });
+    .then((res) => {})
+    .catch((err) => {});
 };
 
-const dischargeQ = async (user_id) => {
-  const user = await User.findByIdAndUpdate(user_id, {
-    $set: { queue_no: -2, estimated_time: null },
-  });
-  const center = await Center.findOneAndUpdate(
-    { name: user.center },
-    { $pull: { queue: user_id } },
+router.post("/details", async (req, res) => {
+  const { qid, sankar } = req.body;
+  console.log(sankar);
+  const q = await Queue.findById(qid);
+  console.log(q);
+  res.json({ q: q });
+});
+
+router.post("/create", verify, async (req, res) => {
+  const { name, limit, time } = req.body;
+  const newQ = new Queue({ name, limit, time });
+  const addedQ = await newQ.save();
+  const userid = req.user._id;
+  console.log(userid);
+  console.log("working");
+  if (!userid) return null;
+  const user = await User.findByIdAndUpdate(
+    userid,
+    { $set: { center_id: addedQ._id } },
     { new: true }
   );
-  for (var i = 0; i < center.queue.length; i++) {
-    let user = await User.findByIdAndUpdate(center.queue[i], {
-      $inc: { queue_no: -1 },
-    });
-    if (user.queue_no >= 15) {
-      notify(user.notify_id);
-    }
-  }
-};
+  return res.json({ user: user });
+});
 
-module.exports = { addToQ };
+router.post("/add", verify, async (req, res) => {
+  const { center_id } = req.body;
+  const userid = req.user._id;
+  if (!userid) return null;
+  const exist = await User.findOne({ _id: userid, queue_id: center_id });
+  if (exist) return res.json({ user: exist });
+  const user = await User.findOne({ _id: userid });
+  const center = await Queue.findByIdAndUpdate(center_id, {
+    $push: { line: { user: userid } },
+  });
+  const updatedUser = await User.findByIdAndUpdate(
+    user._id,
+    {
+      $set: {
+        queue_id: center_id,
+      },
+    },
+    { new: true }
+  );
+  return res.json({ user: updatedUser });
+});
 
-// <!-- The core Firebase JS SDK is always required and must be listed first -->
-// <script src="https://www.gstatic.com/firebasejs/8.4.2/firebase-app.js"></script>
+router.post("/remove", verify, async (req, res) => {
+  const { user_id, queue_id } = req.body;
+  const ownerid = req.user._id;
+  if (!ownerid) return null;
+  let owner = await User.findOne({ _id: ownerid, center_id: queue_id });
+  if (!owner) return null;
+  const center = await Queue.findByIdAndUpdate(
+    owner.center_id,
+    { $pull: { "line.user": user_id } },
+    { new: true }
+  );
+  const user = await User.findByIdAndRemove(user_id, {
+    $set: { queue_id: null },
+  });
+  owner = await User.findOne({ _id: ownerid, center_id: queue_id });
+  return res.json({ user: owner });
+});
 
-// <!-- TODO: Add SDKs for Firebase products that you want to use
-//      https://firebase.google.com/docs/web/setup#available-libraries -->
-// <script src="https://www.gstatic.com/firebasejs/8.4.2/firebase-analytics.js"></script>
+router.post("/view", async (req, res) => {
+  const { queue_id } = req.body;
+  const queue = await Queue.findById(queue_id);
+  res.json({ queue: queue });
+});
 
-// <script>
-//   // Your web app's Firebase configuration
-//   // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-//   var firebaseConfig = {
-//     apiKey: "AIzaSyCgdoGOesEWA9xf4SYbfTm9m1TOH4WgpJ4",
-//     authDomain: "vacciq-90b12.firebaseapp.com",
-//     projectId: "vacciq-90b12",
-//     storageBucket: "vacciq-90b12.appspot.com",
-//     messagingSenderId: "926551375844",
-//     appId: "1:926551375844:web:2fd80e0af934a7cdad11f1",
-//     measurementId: "G-Y2DX6SPSJ7"
-//   };
-//   // Initialize Firebase
-//   firebase.initializeApp(firebaseConfig);
-//   firebase.analytics();
-// </script>
+router.post("/delete", verify, async (req, res) => {
+  const { center_id } = req.body;
+  const ownerid = req.user._id;
+  const owner = await User.findByIdAndUpdate(
+    center_id,
+    {
+      $set: { center_id: null },
+    },
+    { new: true }
+  );
+  await Queue.findByIdAndDelete(center_id);
+  res.json({ user: owner });
+});
+
+module.exports = router;
