@@ -3,6 +3,7 @@ const bc = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const config = require("../config");
 const { User } = require("../models/User");
+const { Queue } = require("../models/Queue");
 
 router.post("/register", async (req, res) => {
   let user = await User.findOne({ phone: req.body.phone });
@@ -25,6 +26,7 @@ router.post("/register", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
+  console.log(req.body);
   const { phone, password } = req.body;
   const userExist = await User.findOne({ phone: phone });
   if (!userExist)
@@ -32,6 +34,18 @@ router.post("/login", async (req, res) => {
   const validPassword = await bc.compare(password, userExist.password);
   if (!validPassword)
     return res.status(500).json({ status: 1, mssg: "Password does not match" });
+  const token = jwt.sign({ _id: userExist._id }, config.jwt_secret);
+  console.log(token);
+  return res.json({ token, user: userExist });
+});
+
+router.post("/reducedlogin", async (req, res) => {
+  const { phone, name, qid } = req.body;
+  let userExist = await User.findOne({ phone: phone });
+  if (!userExist) userExist = await User({ name, phone, queue_id: qid }).save();
+  await Queue.findByIdAndUpdate(qid, {
+    $push: { line: { user: userExist._id } },
+  });
   const token = jwt.sign({ _id: userExist._id }, config.jwt_secret);
   return res.json({ token, user: userExist });
 });
